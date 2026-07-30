@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 11 * * *'   # 06:00 America/Chicago during DST (UTC-5)
+    - cron: '0 12 * * *'   # 06:00 America/Chicago during standard time (UTC-6)
+
+jobs:
+  test:
+    name: Test (${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: If scheduled run, ensure it's 06:00 in America/Chicago
+        if: github.event_name == 'schedule'
+        run: |
+          echo "Checking America/Chicago local hour..."
+          CHI_HOUR=$(TZ=America/Chicago date +%H)
+          echo "America/Chicago hour: $CHI_HOUR"
+          if [ "$CHI_HOUR" != "06" ]; then
+            echo "Not 06:00 in America/Chicago — exiting without running tests."
+            exit 0
+          fi
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        env:
+          CI: true
+          CRM_WEBHOOK_API_KEY: ${{ secrets.CRM_WEBHOOK_API_KEY }}
+        run: npm test
