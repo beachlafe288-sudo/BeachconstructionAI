@@ -1,0 +1,16 @@
+# Zapier lead router - package.json (optional)
+
+This package.json is optional: if your repo already has a Node project, add these deps there instead.
+
+{
+  "name": "zapier-lead-router",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node src/zapier/webhook-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2"
+  }
+}
