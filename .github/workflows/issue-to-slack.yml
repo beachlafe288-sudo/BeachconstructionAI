@@ -1,0 +1,31 @@
+name: Issue to Slack
+
+on:
+  issues:
+    types: [opened, edited, reopened, closed]
+  issue_comment:
+    types: [created]
+
+jobs:
+  notify_slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          EVENT: ${{ github.event.action }}
+        run: |
+          # Truncate body and escape quotes/newlines for JSON
+          BODY_SNIPPET=$(echo "$ISSUE_BODY" | head -c 800 | sed 's/"/\\"/g' | sed -e ':a;N;$!ba;s/\n/\\n/g')
+
+          # Build Slack payload
+          read -r -d '' PAYLOAD <<EOF || true
+{"text":"[${REPO}] Issue ${EVENT}: *${ISSUE_TITLE}*\n${ISSUE_URL}\nPosted by ${ACTOR}\n\n${BODY_SNIPPET}"}
+EOF
+
+          curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK"
